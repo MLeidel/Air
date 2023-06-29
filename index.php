@@ -3,24 +3,43 @@
 /air/index.php
 Demonstrates the use of three different API with Javascript
 in a web page, and session Mmanagement with a cookie.
+
+69022 default zipcode
+user must enter zip code
+location NOT obtained from browser
+location for AirNow obtained from loc_zip.db
 ***/
 
 extract($_POST);
 
-$cityId = "53186";  // default for weather & Pollen
+$cityId = $_COOKIE["AIR"];  // default for weather & Pollen
+
+function getLatLonFromZip($zipcode) {
+  $db = new SQLite3('loc_zip.db');
+  $sql = "SELECT lat, lon, state from table1 where zip = '". $zipcode . "'";
+  $results = $db->query($sql);
+  $ar = $results->fetchArray();
+  if (!$ar) {
+    setcookie("AIR", "69022", (time()+3600)*24*364 );  /* expire in 1 year */
+    header("Location: index.php");
+  }
+  return $ar;
+}
 
 if (isset($ziptext)) {  // user wants to set cookie
   setcookie("AIR", $ziptext, time()+60*60*24*365 );	// expire in 30 days
   $cityId = $ziptext;
 }
-// replace "appid" with your registered id
-$Api = "http://api.openweathermap.org/data/2.5/weather?zip=$cityId,us&appid=xxxxxxxxxxxxxxxxxxxx";
+
+$loc = getLatLonFromZip($cityId);
+
+$Api = "http://api.openweathermap.org/data/2.5/weather?zip=$cityId,us&appid=cfca2c7683ae69176bbae12951355fa6";
 $response = file_get_contents($Api);
 // Decode the JSON response
 $data = json_decode($response, true);
 // Store the weather information
-$WeaInfo =
-"City: " . $data["name"] . "<br>" .
+$WeaInfo = "<h3>" . $data["name"] . "</h3>" .
+$loc[2] . "<br>" .
 "Temperature: <b>" . round( $data["main"]["temp"] * 9/5 - 459.67) . " </b>degrees<br>" .
 "Wind: " . round($data["wind"]["speed"] * 2.2369362920544) . " mph<br>" .
 "Description: " . $data["weather"][0]["description"] . "<br>";
@@ -42,9 +61,12 @@ $WeaInfo =
   span {
     font: normal 10pt sans-serif;
   }
+  h3 {
+    margin: 0;
+    padding: 0;
+  }
   </style>
 </head>
-
 <body>
 <br><br>
   <center>
@@ -63,8 +85,8 @@ $WeaInfo =
     style="width:300px;height:250px;background-color:#eee;position:relative;display:inline-block;">
   </div>
   <form name="frm" method="post"> <!-- save zip location for weather and Pollen info -->
-  	<input type="text" name="ziptext" placeholder="save your zip code here" title="AQI Geo Loc only" />
-  	<input type="submit" name="sub" value="set">
+  	<input type="text" name="ziptext" id="ZIP" placeholder="SET ZIP CODE HERE" />
+  	<input type="submit" name="sub" value="set" title="Set New Zip Here">
   </form>
 
   <br>
@@ -73,52 +95,19 @@ $WeaInfo =
 
   </center>
 <script>
+  var lat = <?php echo $loc[0] ?>;
+  var lon = <?php echo $loc[1] ?>;
 
-  function getLocation() {
-    // Check if Geolocation is supported.
-    if (navigator.geolocation) {
-      // Get the user's current location.
-      navigator.geolocation.getCurrentPosition(showPosition, showError);
-    } else {
-      // Geolocation is not supported.
-      document.getElementById("latitude").innerHTML = "Geolocation is not supported.";
-      document.getElementById("longitude").innerHTML = "";
-    }
-  }
-
-  function showPosition(position) {
-    // Get the latitude and longitude.
-    var latitude = position.coords.latitude;
-    var longitude = position.coords.longitude;
-    var source = "https://widget.airnow.gov/aq-dial-widget/?latitude=" + latitude + "&longitude=" + longitude;
-    // load the control
-    JS.doq("#GEO").src = source;  // AirNow API
-    JS.doq("#latitude").innerHTML = "Lat: " + latitude;
-    JS.doq("#longitude").innerHTML = "Lon: " + longitude;
-  }
-
-  function showError(error) {
-    // if error display the error message.
-    switch (error.code) {
-      case 0:
-        JS.doq("#latitude").innerHTML = "Unknown error.";
-        break;
-      case 1:
-        JS.doq("#latitude").innerHTML = "Permission denied.";
-        break;
-      case 2:
-        JS.doq("#latitude").innerHTML = "Position unavailable.";
-        break;
-      case 3:
-        JS.doq("#latitude").innerHTML = "Timeout.";
-        break;
-    }
-    JS.doq("#longitude").innerHTML = "";
-  }
+  var source = "https://widget.airnow.gov/aq-dial-widget/?latitude=" + lat + "&longitude=" + lon;
+  // load the control
+  JS.doq("#GEO").src = source;  // AirNow API
+  JS.doq("#latitude").innerHTML = "Lat: " + lat;
+  JS.doq("#longitude").innerHTML = "Lon: " + lon;
 
   let cval = JS.getCookie( "AIR" );  // persistent zip location for weather and Pollen info
   JS.attr("#allergyalert", "data-aa_location", cval);  // sets requested zip location
-  getLocation();  // get lat & lon from browser, and set AQI widget
+  JS.val("#ZIP", cval);
 </script>
 </body>
 </html>
+
