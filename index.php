@@ -27,13 +27,13 @@ function getLatLonFromZip($zipcode) {
 }
 
 if (isset($ziptext)) {  // user wants to set cookie
-  setcookie("AIR", $ziptext, time()+60*60*24*365 );	// expire in 30 days
+  setcookie("AIR", $ziptext, time()+60*60*24*365 ); // expire in 30 days
   $cityId = $ziptext;
 }
 
 $loc = getLatLonFromZip($cityId);
 
-$Api = "http://api.openweathermap.org/data/2.5/weather?zip=$cityId,us&appid=cfca2c7683ae69176bbae12951355fa6";
+$Api = "http://api.openweathermap.org/data/2.5/weather?zip=$cityId,us&appid=YOURKEYFROMOPENWEATHERMAP";
 $response = file_get_contents($Api);
 // Decode the JSON response
 $data = json_decode($response, true);
@@ -41,6 +41,7 @@ $data = json_decode($response, true);
 $WeaInfo = "<h3>" . $data["name"] . "</h3>" .
 $loc[2] . "<br>" .
 "Temperature: <b>" . round( $data["main"]["temp"] * 9/5 - 459.67) . " </b>degrees<br>" .
+"Humidity: " . $data["main"]["humidity"] . "% <br>".
 "Wind: " . round($data["wind"]["speed"] * 2.2369362920544) . " mph<br>" .
 "Description: " . $data["weather"][0]["description"] . "<br>";
 ?>
@@ -48,9 +49,9 @@ $loc[2] . "<br>" .
 <!DOCTYPE HTML>
 <html lang="en-US">
 <head>
-	<meta charset='UTF-8'>
-	<meta name='viewport' content='width=device-width, initial-scale=1'>
-	<title>Air Web Widget</title>
+  <meta charset='UTF-8'>
+  <meta name='viewport' content='width=device-width, initial-scale=1'>
+  <title>Air Web Widget</title>
   <script src="//www.pollenapps.com/df/tools/aa/js/one.1.0.min.js"></script>
   <link rel="stylesheet" href="//www.pollenapps.com/df/tools/aa/css/load.css">
   <script type="text/javascript" src="../js/myJS-1.2.min.js"></script>
@@ -79,14 +80,16 @@ $loc[2] . "<br>" .
   <iframe title="AQI" height="340" id="GEO"
     style="border: none; border-radius: 35px;" width="230">  <!-- source set in showPosition -->
   </iframe>
-  <br><br>
+  <br>
+  <small><a href="aqicnv.html" target="_blank">PM to AQI conversions</a></small>
+  <br>
   <!-- This is the Pollen widget with default zip location -->
   <div id="allergyalert" data-aa_account="10647" data-aa_location="53186"
     style="width:300px;height:250px;background-color:#eee;position:relative;display:inline-block;">
   </div>
   <form name="frm" method="post"> <!-- save zip location for weather and Pollen info -->
-  	<input type="text" name="ziptext" id="ZIP" placeholder="SET ZIP CODE HERE" />
-  	<input type="submit" name="sub" value="set" title="Set New Zip Here">
+    <input type="text" name="ziptext" id="ZIP" placeholder="SET ZIP CODE HERE" />
+    <input type="submit" name="sub" value="set" title="Set New Zip Here">
   </form>
 
   <br>
@@ -110,4 +113,3 @@ $loc[2] . "<br>" .
 </script>
 </body>
 </html>
-
