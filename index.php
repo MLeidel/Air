@@ -4,13 +4,66 @@
 Demonstrates the use of three different API with Javascript
 in a web page, and session Mmanagement with a cookie.
 
-69022 default zipcode
-user must enter zip code
+90210 default zipcode
+user must enter zip code or City, ST
 location NOT obtained from browser
 location for AirNow obtained from loc_zip.db
 ***/
 
 extract($_POST);
+
+$stateArray = array(
+    "AL" => "Alabama",
+    "AK" => "Alaska",
+    "AZ" => "Arizona",
+    "AR" => "Arkansas",
+    "CA" => "California",
+    "CO" => "Colorado",
+    "CT" => "Connecticut",
+    "DE" => "Delaware",
+    "FL" => "Florida",
+    "GA" => "Georgia",
+    "HI" => "Hawaii",
+    "ID" => "Idaho",
+    "IL" => "Illinois",
+    "IN" => "Indiana",
+    "IA" => "Iowa",
+    "KS" => "Kansas",
+    "KY" => "Kentucky",
+    "LA" => "Louisiana",
+    "ME" => "Maine",
+    "MD" => "Maryland",
+    "MA" => "Massachusetts",
+    "MI" => "Michigan",
+    "MN" => "Minnesota",
+    "MS" => "Mississippi",
+    "MO" => "Missouri",
+    "MT" => "Montana",
+    "NE" => "Nebraska",
+    "NV" => "Nevada",
+    "NH" => "New Hampshire",
+    "NJ" => "New Jersey",
+    "NM" => "New Mexico",
+    "NY" => "New York",
+    "NC" => "North Carolina",
+    "ND" => "North Dakota",
+    "OH" => "Ohio",
+    "OK" => "Oklahoma",
+    "OR" => "Oregon",
+    "PA" => "Pennsylvania",
+    "RI" => "Rhode Island",
+    "SC" => "South Carolina",
+    "SD" => "South Dakota",
+    "TN" => "Tennessee",
+    "TX" => "Texas",
+    "UT" => "Utah",
+    "VT" => "Vermont",
+    "VA" => "Virginia",
+    "WA" => "Washington",
+    "WV" => "West Virginia",
+    "WI" => "Wisconsin",
+    "WY" => "Wyoming"
+);
 
 $cityId = $_COOKIE["AIR"];  // default for weather & Pollen
 
@@ -20,20 +73,37 @@ function getLatLonFromZip($zipcode) {
   $results = $db->query($sql);
   $ar = $results->fetchArray();
   if (!$ar) {
-    setcookie("AIR", "69022", (time()+3600)*24*364 );  /* expire in 1 year */
+    setcookie("AIR", "90210", (time()+3600)*24*364 );  /* expire in 1 year */
     header("Location: index.php");
   }
   return $ar;
 }
 
+function getzip($ziptext) {
+  global $stateArray;
+  $parts = explode(",", $ziptext);
+  $city = trim($parts[0]);
+  $stID = trim($parts[1]);
+  $stname = $stateArray[$stID];
+  $db = new SQLite3('loc_zip.db');
+  $sql = "SELECT zip from table1 WHERE state = '$stname' AND city = '$city'";
+  $results = $db->query($sql);
+  $ar = $results->fetchArray();
+  return $ar[0];
+}
+
 if (isset($ziptext)) {  // user wants to set cookie
-  setcookie("AIR", $ziptext, time()+60*60*24*365 ); // expire in 30 days
-  $cityId = $ziptext;
+  if (is_numeric($ziptext)) {
+    $cityId = $ziptext;
+  } else { // lookup city state in loc_zip.db
+    $cityId = getzip($ziptext);
+  }
+  setcookie("AIR", $cityId, time()+60*60*24*365 );  // expire in 30 days
 }
 
 $loc = getLatLonFromZip($cityId);
 
-$Api = "http://api.openweathermap.org/data/2.5/weather?zip=$cityId,us&appid=YOURKEYFROMOPENWEATHERMAP";
+$Api = "http://api.openweathermap.org/data/2.5/weather?zip=$cityId,us&appid=cfca2c7683ae69176bbae12951355fa6";
 $response = file_get_contents($Api);
 // Decode the JSON response
 $data = json_decode($response, true);
@@ -88,13 +158,12 @@ $loc[2] . "<br>" .
     style="width:300px;height:250px;background-color:#eee;position:relative;display:inline-block;">
   </div>
   <form name="frm" method="post"> <!-- save zip location for weather and Pollen info -->
-    <input type="text" name="ziptext" id="ZIP" placeholder="SET ZIP CODE HERE" />
+    <input type="text" name="ziptext" id="ZIP" placeholder="City, ST or zip 99999" />
     <input type="submit" name="sub" value="set" title="Set New Zip Here">
   </form>
 
   <br>
-  <span id="longitude"></span>&nbsp;&nbsp;
-  <span id="latitude"></span>
+  <span id="longitude"></span>&nbsp;&nbsp;<span id="latitude"></span>
 
   </center>
 <script>
